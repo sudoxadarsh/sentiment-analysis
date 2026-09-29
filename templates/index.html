@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .positive {
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+        }
+        .negative {
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+        }
+        .neutral {
+            background-color: #fcf8e3;
+            border: 1px solid #faebcc;
+        }
+        .metrics {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .error {
+            color: #d9534f;
+            background-color: #f2dede;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sentiment Analysis Tool</h1>
+    <form method="POST">
+        <textarea name="text" placeholder="Enter your text here..." required>{% if results %}{{ results.text }}{% endif %}</textarea>
+        <button type="submit">Analyze Sentiment</button>
+    </form>
+
+    {% if error %}
+    <div class="error">
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="results {{ results.sentiment }}">
+        <h3>Analysis Results:</h3>
+        <p><strong>Sentiment:</strong> {{ results.sentiment|capitalize }}</p>
+        <p><strong>Detected Language:</strong> {{ results.language }}</p>
+        <!-- In your results section -->
+        {% if results.language and results.language != "Unknown" %}
+         <p><strong>Detected Language:</strong> {{ results.language }}</p>
+        {% endif %}
+        
+        <div class="metrics">
+            <p><strong>Polarity:</strong> {{ results.polarity }} 
+            (ranges from -1.0 to 1.0, where -1 is negative, 0 is neutral, and 1 is positive)</p>
+            
+            <p><strong>Subjectivity:</strong> {{ results.subjectivity }} 
+            (ranges from 0.0 to 1.0, where 0 is very objective and 1 is very subjective)</p>
+        </div>
+    </div>
+    {% endif %}
+</body>
+</html>
