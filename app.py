@@ -1,58 +1,63 @@
 from flask import Flask, render_template, request
-from textblob import TextBlob
-import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 app = Flask(__name__)
 
-# Download required NLTK data
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')
 
-@app.route('/', methods=['GET', 'POST'])
+def classify_tweet(tweet: str, analyzer: SentimentIntensityAnalyzer) -> dict[str, str]:
+    compound = analyzer.polarity_scores(tweet)["compound"]
+    if compound >= 0.05:
+        sentiment = "positive"
+    elif compound <= -0.05:
+        sentiment = "negative"
+    else:
+        sentiment = "neutral"
+
+    return {
+        "text": tweet,
+        "sentiment": sentiment,
+        "score": f"{compound:.2f}",
+    }
+
+
+@app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == 'POST':
-        text = request.form.get('text', '')
-        
-        if not text.strip():
-            return render_template('index.html', error="Please enter some text")
-        
-        try:
-            blob = TextBlob(text)
-            sentiment = "neutral"
-            
-            # Determine sentiment based on polarity
-            polarity = blob.sentiment.polarity
-            if polarity > 0.1:
-                sentiment = "positive"
-            elif polarity < -0.1:
-                sentiment = "negative"
-            
-            # Get language (correct method)
-            language = "en"  # Default to English
-            try:
-                # This is the correct way to detect language in TextBlob
-                if hasattr(blob, 'detect_language'):
-                    language = blob.detect_language()
-                else:
-                    # Fallback method for newer versions
-                    language = blob.translate(to='en').detect_language()
-            except:
-                language = "Unknown"
-            
-            # Prepare results
-            results = {
-                'text': text,
-                'sentiment': sentiment,
-                'polarity': f"{polarity:.2f}",
-                'subjectivity': f"{blob.sentiment.subjectivity:.2f}",
-                'language': language
-            }
-            return render_template('index.html', results=results)
-        
-        except Exception as e:
-            return render_template('index.html', error=f"Analysis error: {str(e)}")
-    
-    return render_template('index.html')
+    if request.method == "GET":
+        return render_template("index.html")
 
-if __name__ == '__main__':
+    submitted_tweets = request.form.get("tweets", "")
+    tweets = [line.strip() for line in submitted_tweets.splitlines() if line.strip()]
+    if not tweets:
+        return render_template(
+            "index.html",
+            submitted_tweets=submitted_tweets,
+            error="Please enter at least one tweet to analyze.",
+        )
+
+    try:
+        analyzer = SentimentIntensityAnalyzer()
+    except LookupError:
+        return render_template(
+            "index.html",
+            submitted_tweets=submitted_tweets,
+            error=(
+                "The NLTK VADER lexicon is missing. Install it by running "
+                "'python -m nltk.downloader vader_lexicon' and try again."
+            ),
+        )
+
+    results = [classify_tweet(tweet, analyzer) for tweet in tweets]
+    summary = {
+        sentiment: sum(result["sentiment"] == sentiment for result in results)
+        for sentiment in ("positive", "negative", "neutral")
+    }
+    return render_template(
+        "index.html",
+        submitted_tweets=submitted_tweets,
+        results=results,
+        summary=summary,
+    )
+
+
+if __name__ == "__main__":
     app.run(debug=True)
